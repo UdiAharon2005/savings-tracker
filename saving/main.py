@@ -1,9 +1,9 @@
-import streamlit as st
-import matplotlib.pyplot as plt
-import sqlite3
 from datetime import datetime, timedelta
 import hashlib
 import os
+import sqlite3
+import matplotlib.pyplot as plt
+import streamlit as st
 
 DB_FILE = "savings_data.db"
 
@@ -12,7 +12,6 @@ DB_FILE = "savings_data.db"
 def init_db():
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
-    # Savings table
     c.execute("""
         CREATE TABLE IF NOT EXISTS savings (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -26,14 +25,12 @@ def init_db():
             date_saved TEXT
         )
     """)
-    # Users table
     c.execute("""
         CREATE TABLE IF NOT EXISTS users (
             username TEXT PRIMARY KEY,
             password TEXT NOT NULL
         )
     """)
-    # Actual deposits log - check if is_total column exists
     c.execute("""
         CREATE TABLE IF NOT EXISTS deposits (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -120,6 +117,10 @@ if "forecast_triggered" not in st.session_state:
     st.session_state.forecast_triggered = False
 if "forecast_data" not in st.session_state:
     st.session_state.forecast_data = {}
+if "just_added" not in st.session_state:
+    st.session_state.just_added = False
+if "just_deleted" not in st.session_state:
+    st.session_state.just_deleted = False
 
 if not st.session_state.logged_in:
     st.subheader("Login / Register")
@@ -134,7 +135,7 @@ if not st.session_state.logged_in:
                 st.session_state.logged_in = True
                 st.session_state.username = login_user
                 st.success("Successfully logged in!")
-                st.experimental_rerun()
+                st.rerun()
             else:
                 st.error("Invalid username or password")
 
@@ -152,7 +153,7 @@ else:
     if st.button("🔓 Logout"):
         st.session_state.logged_in = False
         st.session_state.username = ""
-        st.experimental_rerun()
+        st.rerun()
 
     user = st.session_state.username
     st.markdown("---")
@@ -174,6 +175,14 @@ else:
     with tab_main:
         st.subheader("Deposit Log")
         deposits = get_user_deposits(user)
+
+        if st.session_state.just_added:
+            st.success("Deposit added!")
+            st.session_state.just_added = False
+        if st.session_state.just_deleted:
+            st.success("Deposit deleted!")
+            st.session_state.just_deleted = False
+
         if deposits:
             for did, date, amount, is_total, current_total in deposits:
                 label = f"{date} — ₪{amount:,.2f} ({'Total' if is_total else 'Added'})"
@@ -185,11 +194,12 @@ else:
                 with col2:
                     if st.button("Delete", key=f"del_{did}"):
                         delete_deposit(did)
-                        st.experimental_rerun()
+                        st.session_state.just_deleted = True
+                        st.rerun()
             if st.button("❌ Delete All Records"):
                 delete_all_deposits(user)
                 st.success("All deposit records deleted")
-                st.experimental_rerun()
+                st.rerun()
         else:
             st.info("No deposits found. Add your savings history below.")
 
@@ -202,8 +212,8 @@ else:
         if st.button("Add Deposit"):
             is_total = current_total > 0
             save_deposit(user, new_date.isoformat(), added_amount, is_total, current_total if is_total else None)
-            st.success("Deposit added!")
-            st.experimental_rerun()
+            st.session_state.just_added = True
+            st.rerun()
 
         if deposits:
             st.markdown("---")
