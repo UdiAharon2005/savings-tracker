@@ -257,77 +257,77 @@ else:
             st.pyplot(fig)
 
     with tab_forecast:
-    st.subheader("Savings Forecast")
-    deposits = get_user_deposits(user)
+        st.subheader("Savings Forecast")
+        deposits = get_user_deposits(user)
+    
+        if deposits:
+            deposits_sorted = sorted([(datetime.fromisoformat(d[1]), d[2], d[3], d[4]) for d in deposits])
+            hist_dates = [d[0] for d in deposits_sorted]
+    
+            cumulative = []
+            total = 0
+            for _, amt, is_total, current_total in deposits_sorted:
+                if current_total:
+                    total = current_total
+                elif is_total:
+                    total = amt
+                else:
+                    total += amt
+                cumulative.append(total)
 
-    if deposits:
-        deposits_sorted = sorted([(datetime.fromisoformat(d[1]), d[2], d[3], d[4]) for d in deposits])
-        hist_dates = [d[0] for d in deposits_sorted]
+            hist_cumulative = cumulative
+            last_date = hist_dates[-1]
+            last_amount = hist_cumulative[-1]
+    
+            st.markdown("---")
+            st.subheader("Forecast Parameters")
+            monthly = st.number_input("Monthly Contribution", min_value=0.0, value=500.0, step=100.0)
+            years = st.number_input("Years", min_value=1, value=10)
 
-        cumulative = []
-        total = 0
-        for _, amt, is_total, current_total in deposits_sorted:
-            if current_total:
-                total = current_total
-            elif is_total:
-                total = amt
-            else:
-                total += amt
-            cumulative.append(total)
-
-        hist_cumulative = cumulative
-        last_date = hist_dates[-1]
-        last_amount = hist_cumulative[-1]
-
-        st.markdown("---")
-        st.subheader("Forecast Parameters")
-        monthly = st.number_input("Monthly Contribution", min_value=0.0, value=500.0, step=100.0)
-        years = st.number_input("Years", min_value=1, value=10)
-
-        if st.button("Run Forecast"):
-            months_forecast = 12 * years
-            forecast_dates = [last_date + timedelta(days=30 * i) for i in range(1, months_forecast + 1)]
-
-            no_growth_rate = 0.00
-            mid_growth_rate = 0.04
-            high_growth_rate = 0.08
-
-            forecast_no_growth = compute_growth(last_amount, monthly, years, no_growth_rate)
-            forecast_mid = compute_growth(last_amount, monthly, years, mid_growth_rate)
-            forecast_high = compute_growth(last_amount, monthly, years, high_growth_rate)
-
-            st.session_state.forecast_triggered = True
-            st.session_state.forecast_data = {
-                "hist_dates": hist_dates,
-                "hist_cumulative": hist_cumulative,
-                "forecast_dates": forecast_dates,
-                "no_growth": forecast_no_growth,
-                "mid": forecast_mid,
-                "high": forecast_high
-            }
-
-        if st.session_state.forecast_triggered:
-            data = st.session_state.forecast_data
-            fig3, ax3 = plt.subplots(figsize=(10, 4))
-            ax3.plot(data["hist_dates"], data["hist_cumulative"], color="black", label="History")
-            ax3.plot(data["forecast_dates"], data["no_growth"], color="red", linestyle="--", label="0% Growth")
-            ax3.plot(data["forecast_dates"], data["mid"], color="orange", linestyle="--", label="4% Growth")
-            ax3.plot(data["forecast_dates"], data["high"], color="green", linestyle="--", label="8% Growth")
-
-            ax3.set_title("Historical and Forecast Savings")
-            ax3.set_xlabel("Date")
-            ax3.set_ylabel("₪")
-            ax3.legend()
-            ax3.grid(True)
-            st.pyplot(fig3)
-
-            st.markdown("**Forecasted Savings after {} years:**".format(int(years)))
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.markdown(f"<span style='color:red'>0% Growth: ₪{data['no_growth'][-1]:,.2f}</span>", unsafe_allow_html=True)
-            with col2:
-                st.markdown(f"<span style='color:orange'>4% Growth: ₪{data['mid'][-1]:,.2f}</span>", unsafe_allow_html=True)
-            with col3:
-                st.markdown(f"<span style='color:green'>8% Growth: ₪{data['high'][-1]:,.2f}</span>", unsafe_allow_html=True)
-    else:
-        st.info("Add deposit history to run forecast.")
+            if st.button("Run Forecast"):
+                months_forecast = 12 * years
+                forecast_dates = [last_date + timedelta(days=30 * i) for i in range(1, months_forecast + 1)]
+    
+                no_growth_rate = 0.00
+                mid_growth_rate = 0.04
+                high_growth_rate = 0.08
+    
+                forecast_no_growth = compute_growth(last_amount, monthly, years, no_growth_rate)
+                forecast_mid = compute_growth(last_amount, monthly, years, mid_growth_rate)
+                forecast_high = compute_growth(last_amount, monthly, years, high_growth_rate)
+    
+                st.session_state.forecast_triggered = True
+                st.session_state.forecast_data = {
+                    "hist_dates": hist_dates,
+                    "hist_cumulative": hist_cumulative,
+                    "forecast_dates": forecast_dates,
+                    "no_growth": forecast_no_growth,
+                    "mid": forecast_mid,
+                    "high": forecast_high
+                }
+    
+            if st.session_state.forecast_triggered:
+                data = st.session_state.forecast_data
+                fig3, ax3 = plt.subplots(figsize=(10, 4))
+                ax3.plot(data["hist_dates"], data["hist_cumulative"], color="black", label="History")
+                ax3.plot(data["forecast_dates"], data["no_growth"], color="red", linestyle="--", label="0% Growth")
+                ax3.plot(data["forecast_dates"], data["mid"], color="orange", linestyle="--", label="4% Growth")
+                ax3.plot(data["forecast_dates"], data["high"], color="green", linestyle="--", label="8% Growth")
+    
+                ax3.set_title("Historical and Forecast Savings")
+                ax3.set_xlabel("Date")
+                ax3.set_ylabel("₪")
+                ax3.legend()
+                ax3.grid(True)
+                st.pyplot(fig3)
+    
+                st.markdown("**Forecasted Savings after {} years:**".format(int(years)))
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.markdown(f"<span style='color:red'>0% Growth: ₪{data['no_growth'][-1]:,.2f}</span>", unsafe_allow_html=True)
+                with col2:
+                    st.markdown(f"<span style='color:orange'>4% Growth: ₪{data['mid'][-1]:,.2f}</span>", unsafe_allow_html=True)
+                with col3:
+                    st.markdown(f"<span style='color:green'>8% Growth: ₪{data['high'][-1]:,.2f}</span>", unsafe_allow_html=True)
+        else:
+            st.info("Add deposit history to run forecast.")
